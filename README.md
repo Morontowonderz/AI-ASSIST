@@ -6,7 +6,7 @@ Read-only, fixture-backed FastAPI pilot for the Compliance Review exception brie
 
 ```text
 ./.venv/bin/python -m pytest -q
-./.venv/bin/uvicorn shadowspark_api.app:app --host 127.0.0.1 --port 8000
+./.venv/bin/python -m uvicorn shadowspark_api.app:app --host 127.0.0.1 --port 8000
 ```
 
 Use `Authorization: Bearer ss_test_redacted` and an `Idempotency-Key`. The SQLite path is
