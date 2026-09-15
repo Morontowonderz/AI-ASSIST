@@ -53,3 +53,37 @@ def test_budget_trip_is_rate_limited(tmp_path):
     response = c.post("/v1/compliance-review-brief", headers={**AUTH, "Idempotency-Key": "idem-13"}, json={"exception_id": "ex_a_013"})
     assert response.status_code == 429
     assert response.json()["output"]["status"] == "blocked"
+
+
+def test_api_with_configured_production_token(tmp_path, monkeypatch):
+    monkeypatch.setenv("SHADOWSPARK_ENV", "production")
+    monkeypatch.setenv("SHADOWSPARK_API_TOKEN", "prod_token_live_123")
+    c = client(tmp_path)
+    prod_auth = {"Authorization": "Bearer prod_token_live_123", "Idempotency-Key": "idem-prod-1"}
+    response = c.post("/v1/compliance-review-brief", headers=prod_auth, json={"exception_id": "ex_a_021"})
+    assert response.status_code == 201
+
+
+def test_api_production_rejects_test_capability(tmp_path, monkeypatch):
+    monkeypatch.setenv("SHADOWSPARK_ENV", "production")
+    monkeypatch.setenv("SHADOWSPARK_API_TOKEN", "prod_token_live_123")
+    c = client(tmp_path)
+    response = c.post("/v1/compliance-review-brief", headers={**AUTH, "Idempotency-Key": "idem-prod-2"}, json={"exception_id": "ex_a_021"})
+    assert response.status_code == 401
+    assert response.json() == {"detail": "authentication failed"}
+
+
+def test_api_production_fails_closed_when_token_unconfigured(tmp_path, monkeypatch):
+    monkeypatch.setenv("SHADOWSPARK_ENV", "production")
+    monkeypatch.delenv("SHADOWSPARK_API_TOKEN", raising=False)
+    c = client(tmp_path)
+    response = c.post("/v1/compliance-review-brief", headers={"Authorization": "Bearer any_token", "Idempotency-Key": "idem-prod-3"}, json={"exception_id": "ex_a_021"})
+    assert response.status_code == 401
+    assert response.json() == {"detail": "authentication failed"}
+
+
+def test_api_unauthorized_without_header(tmp_path):
+    c = client(tmp_path)
+    response = c.post("/v1/compliance-review-brief", headers={"Idempotency-Key": "idem-prod-4"}, json={"exception_id": "ex_a_021"})
+    assert response.status_code == 401
+    assert response.json() == {"detail": "authentication failed"}
