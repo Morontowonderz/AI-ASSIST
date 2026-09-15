@@ -98,9 +98,11 @@ echo "      Passed (HTTP 200, queue_state=${INITIAL_STATE})"
 
 # 5. Append annotation: POST /v1/review-queue/{brief_id}/annotations -> 200
 echo "[5/6] Testing POST /v1/review-queue/${BRIEF_ID}/annotations..."
+ANN_IDEM_KEY="idem-ann-e2e-$(date +%s)-$RANDOM"
 ANNOTATE_RESP=$(curl -sS -w "\n%{http_code}" -X POST \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer ${SHADOWSPARK_API_TOKEN}" \
+  -H "Idempotency-Key: ${ANN_IDEM_KEY}" \
   -d '{"annotation": "E2E automated verification annotation"}' \
   "${BASE_URL}/v1/review-queue/${BRIEF_ID}/annotations")
 ANNOTATE_CODE=$(echo "$ANNOTATE_RESP" | tail -n1)

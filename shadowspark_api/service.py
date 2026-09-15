@@ -55,6 +55,6 @@ class ComplianceService:
         return self.db.get_review(brief_id, tenant_id)
 
     def annotate(self, tenant_id: str, brief_id: str, operator_id: str, annotation: str,
-                 request_id: str, key_id: str) -> dict | None:
+                 request_id: str, key_id: str, *, idempotency_key: str | None = None) -> dict | None:
         return self.db.append_annotation(brief_id, tenant_id, operator_id, annotation,
-                                         request_id=request_id, key_id=key_id)
+                                         request_id=request_id, key_id=key_id, idempotency_key=idempotency_key)

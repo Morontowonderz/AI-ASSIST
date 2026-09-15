@@ -47,6 +47,7 @@ def _get_auth_config(
 def authenticate(
     authorization: str | None,
     *,
+    tenant_id: str | None = None,
     env: str | None = None,
     api_token: str | None = None,
 ) -> Principal:
@@ -80,9 +81,13 @@ def authenticate(
         key_fingerprint = TEST_CAPABILITY
         env_label = "test"
 
+    # Resolve tenant identity from trusted server-to-server context.
+    # Defaults deterministically to 'tenant_a' when not specified.
+    resolved_tenant = tenant_id.strip() if isinstance(tenant_id, str) and tenant_id.strip() else "tenant_a"
+
     return Principal(
         key_id=key_fingerprint,
-        tenant_id="tenant_a",
+        tenant_id=resolved_tenant,
         environment=env_label,
         scopes=frozenset({"compliance:read", "compliance:review"}),
     )
