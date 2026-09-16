@@ -54,6 +54,9 @@ class ComplianceService:
     def get_review(self, tenant_id: str, brief_id: str) -> dict | None:
         return self.db.get_review(brief_id, tenant_id)
 
+    def list_reviews(self, tenant_id: str, *, state: str | None = None, limit: int = 50, offset: int = 0) -> dict:
+        return self.db.list_reviews(tenant_id, state=state, limit=limit, offset=offset)
+
     def annotate(self, tenant_id: str, brief_id: str, operator_id: str, annotation: str,
                  request_id: str, key_id: str, *, idempotency_key: str | None = None) -> dict | None:
         return self.db.append_annotation(brief_id, tenant_id, operator_id, annotation,

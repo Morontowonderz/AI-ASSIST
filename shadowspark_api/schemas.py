@@ -44,3 +44,23 @@ class BriefResponse(BaseModel):
     output: dict[str, Any] = Field(..., description="Deterministic compliance brief output payload")
     tool_trace: list[Any] = Field(default_factory=list, description="Tool execution trace")
     replayed: bool = Field(False, description="True if response was served from an idempotent cache")
+
+
+class ReviewQueueSummary(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    brief_id: str = Field(..., description="Brief identifier")
+    tenant_id: str = Field(..., description="Tenant owner of the review item")
+    exception_id: str = Field(..., description="Associated exception identifier")
+    queue_state: str = Field(..., description="Current queue status (pending_review or annotated)")
+    sor_status_unchanged: bool = Field(..., description="System of Record immutability flag")
+    created_at: str = Field(..., description="Queue entry creation timestamp")
+    updated_at: str = Field(..., description="Queue entry last updated timestamp")
+
+
+class ReviewQueueListResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    items: list[ReviewQueueSummary] = Field(default_factory=list, description="List of tenant-scoped review queue items")
+    total: int = Field(..., description="Total count of matching items")
+    limit: int = Field(..., description="Pagination page limit")
+    offset: int = Field(..., description="Pagination page offset")
+

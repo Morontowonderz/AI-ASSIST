@@ -6,7 +6,7 @@ import re
 from pathlib import Path
 from uuid import uuid4
 
-from fastapi import FastAPI, Header, HTTPException, Request, status
+from fastapi import FastAPI, Header, HTTPException, Query, Request, status
 from fastapi.responses import JSONResponse
 
 from .auth import AuthenticationError, authenticate, require_scope
@@ -16,6 +16,7 @@ from .schemas import (
     BriefRequest,
     BriefResponse,
     ErrorResponse,
+    ReviewQueueListResponse,
     ReviewQueueResponse,
 )
 from .service import ComplianceService
@@ -154,6 +155,32 @@ def create_app(db_path: str | Path | None = None, fixture_dir: str | Path = "ven
                 return JSONResponse(status_code=429, content=result)
             return result
         return result
+
+    @app.get(
+        "/v1/review-queue",
+        tags=["Review Queue"],
+        summary="List Review Queue Items",
+        description="Retrieves a paginated list of tenant-scoped review queue items.",
+        response_model=ReviewQueueListResponse,
+        responses={
+            400: {"model": ErrorResponse, "description": "Invalid tenant identifier or query parameters"},
+            401: {"model": ErrorResponse, "description": "Authentication failure"},
+            403: {"model": ErrorResponse, "description": "Insufficient scope (requires compliance:read)"},
+        },
+    )
+    def list_reviews(
+        state: str | None = Query(default=None, description="Filter by state (pending_review/annotated)"),
+        limit: int = Query(default=50, ge=1, le=100, description="Items per page"),
+        offset: int = Query(default=0, ge=0, description="Pagination offset"),
+        authorization: str | None = Header(default=None, description="Bearer capability token"),
+        x_tenant_slug: str | None = Header(default=None, alias="X-Tenant-Slug", description="Tenant slug context"),
+        x_tenant_id: str | None = Header(default=None, alias="X-Tenant-ID", description="Alternative tenant identifier"),
+    ):
+        tenant_context = resolve_tenant(x_tenant_slug, x_tenant_id)
+        principal = principal_for(authorization, tenant_context, "compliance:read")
+        if state is not None and state not in {"pending_review", "annotated"}:
+            raise HTTPException(status_code=400, detail="invalid state filter")
+        return service.list_reviews(principal.tenant_id, state=state, limit=limit, offset=offset)
 
     @app.get(
         "/v1/review-queue/{brief_id}",

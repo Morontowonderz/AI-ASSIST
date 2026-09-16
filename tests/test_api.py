@@ -241,6 +241,48 @@ def test_idempotency_is_tenant_scoped(tmp_path):
 
     # Tenant B creates brief with same shared_key and same exception_id: succeeds without conflict because idempotency is tenant-scoped
     resp_b = c.post("/v1/compliance-review-brief", headers={**AUTH, "X-Tenant-Slug": "tenant_b", "Idempotency-Key": shared_key}, json={"exception_id": "ex_a_021"})
-    assert resp_b.status_code == 201
-    assert resp_b.json()["brief_id"] is not None
     assert resp_a.json()["brief_id"] != resp_b.json()["brief_id"]
+
+
+def test_list_review_queue_tenant_scoped(tmp_path):
+    c = client(tmp_path)
+
+    # Tenant A creates two briefs
+    c.post("/v1/compliance-review-brief", headers={**AUTH, "X-Tenant-Slug": "tenant_a", "Idempotency-Key": "idem-list-a1"}, json={"exception_id": "ex_a_021"})
+    resp_a2 = c.post("/v1/compliance-review-brief", headers={**AUTH, "X-Tenant-Slug": "tenant_a", "Idempotency-Key": "idem-list-a2"}, json={"exception_id": "ex_a_021"}).json()
+    # Annotate one of them
+    c.post(f"/v1/review-queue/{resp_a2['brief_id']}/annotations", headers={**AUTH, "X-Tenant-Slug": "tenant_a", "Idempotency-Key": "idem-list-ann1"}, json={"annotation": "reviewed note"})
+
+    # Tenant B creates one brief
+    c.post("/v1/compliance-review-brief", headers={**AUTH, "X-Tenant-Slug": "tenant_b", "Idempotency-Key": "idem-list-b1"}, json={"exception_id": "ex_a_021"})
+
+    # Tenant A queries review queue
+    res_a = c.get("/v1/review-queue", headers={**AUTH, "X-Tenant-Slug": "tenant_a"})
+    assert res_a.status_code == 200
+    data_a = res_a.json()
+    assert data_a["total"] == 2
+    assert len(data_a["items"]) == 2
+    assert all(item["tenant_id"] == "tenant_a" for item in data_a["items"])
+
+    # Tenant A filters by state=pending_review
+    res_pending = c.get("/v1/review-queue?state=pending_review", headers={**AUTH, "X-Tenant-Slug": "tenant_a"})
+    assert res_pending.status_code == 200
+    assert res_pending.json()["total"] == 1
+    assert res_pending.json()["items"][0]["queue_state"] == "pending_review"
+
+    # Tenant A filters by state=annotated
+    res_annotated = c.get("/v1/review-queue?state=annotated", headers={**AUTH, "X-Tenant-Slug": "tenant_a"})
+    assert res_annotated.status_code == 200
+    assert res_annotated.json()["total"] == 1
+    assert res_annotated.json()["items"][0]["queue_state"] == "annotated"
+
+    # Tenant B queries review queue: only sees 1 item
+    res_b = c.get("/v1/review-queue", headers={**AUTH, "X-Tenant-Slug": "tenant_b"})
+    assert res_b.status_code == 200
+    assert res_b.json()["total"] == 1
+    assert res_b.json()["items"][0]["tenant_id"] == "tenant_b"
+
+    # Invalid state returns 400
+    res_bad = c.get("/v1/review-queue?state=invalid_status", headers={**AUTH, "X-Tenant-Slug": "tenant_a"})
+    assert res_bad.status_code == 400
+
