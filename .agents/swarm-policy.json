@@ -1,0 +1,57 @@
+{
+  "SHADOWSPARK_ENGINEERING_SWARM_V2": {
+    "canonical_rules": "AGENTS.md",
+    "canonical_skills": {
+      "path": ".agents/skills",
+      "format": "<skill>/SKILL.md"
+    },
+    "codex": {
+      "function": "primary_writer",
+      "specialists": ".codex/agents",
+      "parallelism": "read_heavy",
+      "writer_default": 1
+    },
+    "antigravity": {
+      "function": "systems_and_architecture",
+      "specialists": ".agents/agents",
+      "legacy_workflows": "do_not_create",
+      "skills": "canonical"
+    },
+    "grok": {
+      "function": "research_red_team_workflow_orchestration",
+      "skills": {
+        "canonical_path": ".agents/skills",
+        "load_via_config": true
+      },
+      "workflows": ".grok/workflows",
+      "yolo_default": false
+    },
+    "git": {
+      "truth_source": true,
+      "worktrees": "required_for_parallel_writers"
+    },
+    "testing": {
+      "policy": "change_proportional",
+      "regression_tests": "required_for_behavioral_bugs"
+    },
+    "security": {
+      "model": "continuous",
+      "framework": "NIST_SSDF"
+    },
+    "delivery": {
+      "batch_size": "small",
+      "ci": "required",
+      "preview_before_production": true
+    },
+    "state": {
+      "unknown": "explicit",
+      "stale_context": "never_authoritative"
+    },
+    "release": {
+      "tests": "required",
+      "diff_review": "required",
+      "security_check": "required",
+      "e2e": "required_when_applicable"
+    }
+  }
+}
