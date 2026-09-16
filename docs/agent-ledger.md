@@ -23,3 +23,10 @@
 - Verification: Full test suite passes with **63 passed, 0 failures, 2 warnings** in 3.08s (`PYTHONPATH=. .venv/bin/pytest`). Static compilation clean via Python 3.14 `compileall`.
 - Gate Status: `BACKEND_RELEASE_GATE=READY_FOR_MERGE_AND_DEPLOY`, `AI_ASSIST_CONTRACT_GATE=READY`. `ADAPTER_WRITE_GATE=BLOCKED` pending Render deployment synchronization.
 
+## 2026-09-16 — Milestone 3: Consumer handoff verification and ADAPTER_WRITE_GATE opening
+
+- PR Status: PR #2 merged into `main` (merge commit `e43856230fe463f8fc955b253fa65239920aa9bf`).
+- Render Deployment: Web service `shadowspark-ai-api.onrender.com` updated to v1.1.0 (`e438562`). `GET /healthz` returns `{"status":"ok"}` with valid `X-Request-ID`.
+- Live E2E Verification: `scripts/render_e2e.sh` verified across all 6 stages (health, unauthorized 401, brief creation 201, queue retrieval 200, annotation 200, persisted state verification).
+- Consumer Adapter Verification: In `shadowspark-production` (`feat/ai-assist-adapter`), all 35 Vitest adapter tests in `tests/ai-assist-client.test.ts` (19 tests) and `tests/api/compliance.test.ts` (16 tests) passed against the v1.1.0 contract. Full test suite passed (34 files, 190 tests passed).
+- Gate Status: `BACKEND_RELEASE_GATE=DEPLOYED_AND_VERIFIED`, `AI_ASSIST_CONTRACT_GATE=READY`, `ADAPTER_WRITE_GATE=OPEN` (UNBLOCKED).

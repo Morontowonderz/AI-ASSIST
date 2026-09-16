@@ -72,7 +72,7 @@ All outbound requests from `shadowspark-production` to `AI-ASSIST` MUST supply:
 
 ## 5. Live Deployment Status & Next Action for Release
 
-- The current live Render deployment at `https://shadowspark-ai-api.onrender.com` is running v1.0.0 (`209bf97`).
-- `feat/multi-tenant-isolation` is ready to be merged into `main` and deployed to Render.
-- Once deployed, run `scripts/render_e2e.sh` to verify live E2E behavior.
-- `ADAPTER_WRITE_GATE` transitions from `BLOCKED` to `OPEN` as soon as the live Render deployment is verified.
+- The live Render deployment at `https://shadowspark-ai-api.onrender.com` is running v1.1.0 (`e438562`).
+- PR #2 (`feat/multi-tenant-isolation`) is merged into `main` and live deployment is confirmed.
+- `scripts/render_e2e.sh` has verified live E2E behavior across all 6 verification stages.
+- `ADAPTER_WRITE_GATE` is **OPEN**. The consumer adapter in `shadowspark-production` is verified with all 35 Vitest tests passing against the frozen contract.

@@ -1,19 +1,18 @@
 # AI-ASSIST — Current Repository State
 
-**Last Updated**: 2026-09-16T12:20:00Z  
-**Branch**: `feat/multi-tenant-isolation`  
-**HEAD**: `db9d309` (`feat(reviews): add tenant-scoped review queue listing endpoint`)  
-**Remote `origin/main`**: `209bf97` (v1.0.0)  
-**Ahead of `origin/main`**: 5 commits (`5f7942a`, `9a796b6`, `79bb7ef`, `661ce7d`, `db9d309`)  
+**Last Updated**: 2026-09-16T12:46:00Z  
+**Branch**: `main`  
+**HEAD**: `e438562` (`Merge pull request #2 from Morontowonderz/feat/multi-tenant-isolation`)  
+**Remote `origin/main`**: `e438562` (v1.1.0)  
 **Live Render URL**: `https://shadowspark-ai-api.onrender.com`  
-**Live Render Commit**: `209bf97` (v1.0.0)  
+**Live Render Commit**: `e438562` (v1.1.0)  
 
 ---
 
 ## Release Status & Gates
 
-- **BACKEND_RELEASE_GATE**: `READY_FOR_MERGE_AND_DEPLOY` (All backend code remediations, fail-closed auth, persistence env, and review-queue listing complete and verified).
-- **ADAPTER_WRITE_GATE**: `BLOCKED` (Waiting for Render deployment to be updated to `feat/multi-tenant-isolation` so live service reflects v1.1.0).
+- **BACKEND_RELEASE_GATE**: `DEPLOYED_AND_VERIFIED` (Merged into `main` via PR #2, deployed to Render, verified across all 6 E2E stages).
+- **ADAPTER_WRITE_GATE**: `OPEN` (Live Render deployment verified at v1.1.0 commit `e438562`; consumer adapter Vitest suite passing 35/35 tests).
 - **AI_ASSIST_CONTRACT_GATE**: `READY` (Contract frozen and handoff published at `docs/engineering/HANDOFF.md`).
 
 ---

@@ -1,12 +1,11 @@
 # ShadowSpark AI-ASSIST — Current Engineering State
 
-**Last Updated**: 2026-09-16T12:20:00Z  
-**Branch**: `feat/multi-tenant-isolation`  
-**HEAD Commit**: `db9d309` (`feat(reviews): add tenant-scoped review queue listing endpoint`)  
-**Parent / Remote `origin/main`**: `209bf9703c8e495297a67675b2526a711a573c27`  
-**Ahead of `origin/main`**: 5 commits (`5f7942a`, `9a796b6`, `79bb7ef`, `661ce7d`, `db9d309`)  
+**Last Updated**: 2026-09-16T12:46:00Z  
+**Branch**: `main`  
+**HEAD Commit**: `e438562` (`Merge pull request #2 from Morontowonderz/feat/multi-tenant-isolation`)  
+**Parent / Remote `origin/main`**: `e43856230fe463f8fc955b253fa65239920aa9bf`  
 **Live Render URL**: `https://shadowspark-ai-api.onrender.com`  
-**Live Render Deployed Version**: v1.0.0 (`209bf97`)  
+**Live Render Deployed Version**: v1.1.0 (`e438562`)  
 
 ---
 
@@ -14,8 +13,8 @@
 
 | Gate | Status | Detail |
 | :--- | :---: | :--- |
-| `BACKEND_RELEASE_GATE` | **`READY_FOR_MERGE_AND_DEPLOY`** | All backend blockers remediated. Fail-closed production tenancy, `SHADOWSPARK_DB_PATH`, and paginated review queue listing implemented and verified across 63 tests. |
-| `ADAPTER_WRITE_GATE` | **`BLOCKED`** | Live Render deployment is running v1.0.0 (`209bf97`), lacking tenant headers and annotation idempotency. Unblocks as soon as `feat/multi-tenant-isolation` is deployed to Render. |
+| `BACKEND_RELEASE_GATE` | **`DEPLOYED_AND_VERIFIED`** | All backend blockers remediated. PR #2 merged into `main`, deployed to Render, verified across all 6 stages of `render_e2e.sh`. |
+| `ADAPTER_WRITE_GATE` | **`OPEN`** | Live Render deployment verified at v1.1.0 (`e438562`) across all 6 stages of `render_e2e.sh`. 35 Vitest adapter tests in `shadowspark-production` passing cleanly. |
 | `AI_ASSIST_CONTRACT_GATE` | **`READY`** | Complete API contract, schemas, status codes, and error invariants published for Codex (`shadowspark-production`). |
 
 ---
