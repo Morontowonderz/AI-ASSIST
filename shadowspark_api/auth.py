@@ -82,8 +82,14 @@ def authenticate(
         env_label = "test"
 
     # Resolve tenant identity from trusted server-to-server context.
-    # Defaults deterministically to 'tenant_a' when not specified.
-    resolved_tenant = tenant_id.strip() if isinstance(tenant_id, str) and tenant_id.strip() else "tenant_a"
+    # In production, tenant context is mandatory and must fail closed if absent.
+    # In non-production, defaults deterministically to 'tenant_a' when not specified.
+    if isinstance(tenant_id, str) and tenant_id.strip():
+        resolved_tenant = tenant_id.strip()
+    elif is_production:
+        raise AuthenticationError("tenant identifier required in production")
+    else:
+        resolved_tenant = "tenant_a"
 
     return Principal(
         key_id=key_fingerprint,

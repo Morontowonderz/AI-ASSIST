@@ -4,10 +4,11 @@ set -euo pipefail
 BASE_URL="${BASE_URL:-https://shadowspark-ai-api.onrender.com}"
 # Strip trailing slash if present
 BASE_URL="${BASE_URL%/}"
+TENANT_ID="${TENANT_ID:-tenant_a}"
 
 if [[ -z "${SHADOWSPARK_API_TOKEN:-}" ]]; then
   echo "[-] ERROR: SHADOWSPARK_API_TOKEN environment variable must be set." >&2
-  echo "    Usage: SHADOWSPARK_API_TOKEN=\"<token>\" [BASE_URL=\"...\"] $0" >&2
+  echo "    Usage: SHADOWSPARK_API_TOKEN=\"<token>\" [BASE_URL=\"...\"] [TENANT_ID=\"tenant_a\"] $0" >&2
   exit 1
 fi
 
@@ -56,6 +57,7 @@ CREATE_IDEM_KEY="idem-e2e-$(date +%s)-$RANDOM"
 CREATE_RESP=$(curl -sS -w "\n%{http_code}" -X POST "${BASE_URL}/v1/compliance-review-brief" \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer ${SHADOWSPARK_API_TOKEN}" \
+  -H "X-Tenant-ID: ${TENANT_ID}" \
   -H "Idempotency-Key: ${CREATE_IDEM_KEY}" \
   -d '{"exception_id": "ex_a_021"}')
 CREATE_CODE=$(echo "$CREATE_RESP" | tail -n1)
@@ -79,6 +81,7 @@ echo "      Passed (HTTP 201, brief_id=${BRIEF_ID})"
 echo "[4/6] Testing GET /v1/review-queue/${BRIEF_ID}..."
 QUEUE_RESP=$(curl -sS -w "\n%{http_code}" \
   -H "Authorization: Bearer ${SHADOWSPARK_API_TOKEN}" \
+  -H "X-Tenant-ID: ${TENANT_ID}" \
   "${BASE_URL}/v1/review-queue/${BRIEF_ID}")
 QUEUE_CODE=$(echo "$QUEUE_RESP" | tail -n1)
 QUEUE_BODY=$(echo "$QUEUE_RESP" | sed '$d')
@@ -102,6 +105,7 @@ ANN_IDEM_KEY="idem-ann-e2e-$(date +%s)-$RANDOM"
 ANNOTATE_RESP=$(curl -sS -w "\n%{http_code}" -X POST \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer ${SHADOWSPARK_API_TOKEN}" \
+  -H "X-Tenant-ID: ${TENANT_ID}" \
   -H "Idempotency-Key: ${ANN_IDEM_KEY}" \
   -d '{"annotation": "E2E automated verification annotation"}' \
   "${BASE_URL}/v1/review-queue/${BRIEF_ID}/annotations")
@@ -125,6 +129,7 @@ echo "      Passed (HTTP 200, queue_state=${ANNOTATED_STATE})"
 echo "[6/6] Testing GET /v1/review-queue/${BRIEF_ID} for persisted annotation state..."
 VERIFY_RESP=$(curl -sS -w "\n%{http_code}" \
   -H "Authorization: Bearer ${SHADOWSPARK_API_TOKEN}" \
+  -H "X-Tenant-ID: ${TENANT_ID}" \
   "${BASE_URL}/v1/review-queue/${BRIEF_ID}")
 VERIFY_CODE=$(echo "$VERIFY_RESP" | tail -n1)
 VERIFY_BODY=$(echo "$VERIFY_RESP" | sed '$d')

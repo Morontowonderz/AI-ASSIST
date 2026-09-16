@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import os
 import re
 from pathlib import Path
 from uuid import uuid4
@@ -24,7 +25,12 @@ _RAW_ID = re.compile(r"(?<!\d)\d{11}(?!\d)")
 _TENANT_SLUG_RE = re.compile(r"^[a-z0-9][a-z0-9_-]{0,63}$")
 
 
-def create_app(db_path: str | Path = "./data/shadowspark.db", fixture_dir: str | Path = "vendor") -> FastAPI:
+def create_app(db_path: str | Path | None = None, fixture_dir: str | Path = "vendor") -> FastAPI:
+    resolved_db_path = (
+        db_path
+        if db_path is not None
+        else os.environ.get("SHADOWSPARK_DB_PATH", "./data/shadowspark.db")
+    )
     app = FastAPI(
         title="ShadowSpark Compliance Review V1",
         version="1.1.0",
@@ -48,7 +54,7 @@ def create_app(db_path: str | Path = "./data/shadowspark.db", fixture_dir: str |
             {"name": "Review Queue", "description": "Operator review queue inspection and immutable audit annotation"},
         ],
     )
-    service = ComplianceService(Database(db_path), fixture_dir)
+    service = ComplianceService(Database(resolved_db_path), fixture_dir)
 
     @app.middleware("http")
     async def trace_request_id(request: Request, call_next):

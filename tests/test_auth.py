@@ -37,13 +37,25 @@ def test_valid_configured_token_succeeds_in_production(monkeypatch):
     monkeypatch.setenv("SHADOWSPARK_ENV", "production")
     monkeypatch.setenv("SHADOWSPARK_API_TOKEN", "prod_secret_token_999")
 
-    principal = authenticate("Bearer prod_secret_token_999")
+    principal = authenticate("Bearer prod_secret_token_999", tenant_id="tenant_a")
 
     assert principal.environment == "production"
     assert principal.tenant_id == "tenant_a"
     assert principal.scopes == frozenset({"compliance:read", "compliance:review"})
     assert "prod_secret_token_999" not in principal.key_id
     assert principal.key_id.startswith("token:")
+
+
+def test_production_missing_tenant_fails_closed(monkeypatch):
+    monkeypatch.setenv("SHADOWSPARK_ENV", "production")
+    monkeypatch.setenv("SHADOWSPARK_API_TOKEN", "prod_secret_token_999")
+
+    with pytest.raises(AuthenticationError, match="tenant identifier required in production"):
+        authenticate("Bearer prod_secret_token_999", tenant_id=None)
+
+    with pytest.raises(AuthenticationError, match="tenant identifier required in production"):
+        authenticate("Bearer prod_secret_token_999", tenant_id="   ")
+
 
 
 def test_production_rejects_test_capability(monkeypatch):

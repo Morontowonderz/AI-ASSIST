@@ -59,9 +59,51 @@ def test_api_with_configured_production_token(tmp_path, monkeypatch):
     monkeypatch.setenv("SHADOWSPARK_ENV", "production")
     monkeypatch.setenv("SHADOWSPARK_API_TOKEN", "prod_token_live_123")
     c = client(tmp_path)
-    prod_auth = {"Authorization": "Bearer prod_token_live_123", "Idempotency-Key": "idem-prod-1"}
+    prod_auth = {
+        "Authorization": "Bearer prod_token_live_123",
+        "X-Tenant-ID": "tenant_a",
+        "Idempotency-Key": "idem-prod-1",
+    }
     response = c.post("/v1/compliance-review-brief", headers=prod_auth, json={"exception_id": "ex_a_021"})
     assert response.status_code == 201
+
+
+def test_api_production_fails_closed_when_tenant_header_missing(tmp_path, monkeypatch):
+    monkeypatch.setenv("SHADOWSPARK_ENV", "production")
+    monkeypatch.setenv("SHADOWSPARK_API_TOKEN", "prod_token_live_123")
+    c = client(tmp_path)
+
+    # Missing tenant header on brief creation fails closed
+    resp_create = c.post(
+        "/v1/compliance-review-brief",
+        headers={"Authorization": "Bearer prod_token_live_123", "Idempotency-Key": "idem-prod-notenant"},
+        json={"exception_id": "ex_a_021"},
+    )
+    assert resp_create.status_code in {400, 401}
+
+    # Missing tenant header on review queue get fails closed
+    resp_get = c.get(
+        "/v1/review-queue/some_brief_id",
+        headers={"Authorization": "Bearer prod_token_live_123"},
+    )
+    assert resp_get.status_code in {400, 401}
+
+
+def test_app_honors_shadowspark_db_path_env(tmp_path, monkeypatch):
+    custom_db = tmp_path / "custom_dir" / "custom_app.db"
+    monkeypatch.setenv("SHADOWSPARK_DB_PATH", str(custom_db))
+
+    from shadowspark_api.app import create_app
+    app = create_app()
+    c = TestClient(app)
+    resp = c.post(
+        "/v1/compliance-review-brief",
+        headers={**AUTH, "Idempotency-Key": "idem-custom-db"},
+        json={"exception_id": "ex_a_021"},
+    )
+    assert resp.status_code == 201
+    assert custom_db.exists()
+
 
 
 def test_api_production_rejects_test_capability(tmp_path, monkeypatch):
