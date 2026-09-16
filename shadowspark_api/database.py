@@ -74,7 +74,7 @@ class Database:
                   annotation_id TEXT PRIMARY KEY,
                   brief_id TEXT NOT NULL REFERENCES briefs(brief_id) ON DELETE CASCADE,
                   tenant_id TEXT NOT NULL, operator_id TEXT NOT NULL,
-                  annotation TEXT NOT NULL, created_at TEXT NOT NULL
+                  annotation TEXT NOT NULL, idempotency_key TEXT, created_at TEXT NOT NULL
                 );
                 CREATE TABLE IF NOT EXISTS audit_events (
                   event_id TEXT PRIMARY KEY, request_id TEXT NOT NULL,
@@ -82,6 +82,16 @@ class Database:
                   event TEXT NOT NULL, outcome TEXT NOT NULL,
                   object_ref_hash TEXT, detail_json TEXT NOT NULL, created_at TEXT NOT NULL
                 );
+                """
+            )
+            cols = [row[1] for row in conn.execute("PRAGMA table_info(annotations)").fetchall()]
+            if "idempotency_key" not in cols:
+                conn.execute("ALTER TABLE annotations ADD COLUMN idempotency_key TEXT")
+            conn.execute(
+                """
+                CREATE UNIQUE INDEX IF NOT EXISTS uq_annotations_tenant_brief_idem
+                  ON annotations(tenant_id, brief_id, idempotency_key)
+                  WHERE idempotency_key IS NOT NULL
                 """
             )
 
@@ -133,8 +143,42 @@ class Database:
             annotations = conn.execute("SELECT annotation_id, operator_id, annotation, created_at FROM annotations WHERE brief_id=? AND tenant_id=? ORDER BY created_at", (brief_id, tenant_id)).fetchall()
         return {"brief_id": row["brief_id"], "tenant_id": row["tenant_id"], "exception_id": row["exception_id"], "output": json.loads(row["output_json"]), "queue_state": row["state"], "sor_status_unchanged": bool(row["sor_status_unchanged"]), "annotations": [dict(a) for a in annotations], "created_at": row["q_created"], "updated_at": row["updated_at"]}
 
+    def list_reviews(self, tenant_id: str, *, state: str | None = None, limit: int = 50, offset: int = 0) -> dict:
+        limit = max(1, min(limit, 100))
+        offset = max(0, offset)
+        with self._connect() as conn:
+            base_query = "FROM review_queue q JOIN briefs b ON b.brief_id=q.brief_id WHERE q.tenant_id=?"
+            params: list[object] = [tenant_id]
+            if state:
+                base_query += " AND q.state=?"
+                params.append(state)
+
+            count_row = conn.execute(f"SELECT COUNT(*) AS total {base_query}", params).fetchone()
+            total = count_row["total"] if count_row else 0
+
+            rows = conn.execute(
+                f"SELECT q.brief_id, q.tenant_id, b.exception_id, q.state, q.sor_status_unchanged, q.created_at, q.updated_at {base_query} ORDER BY q.created_at DESC LIMIT ? OFFSET ?",
+                params + [limit, offset],
+            ).fetchall()
+
+            items = [
+                {
+                    "brief_id": r["brief_id"],
+                    "tenant_id": r["tenant_id"],
+                    "exception_id": r["exception_id"],
+                    "queue_state": r["state"],
+                    "sor_status_unchanged": bool(r["sor_status_unchanged"]),
+                    "created_at": r["created_at"],
+                    "updated_at": r["updated_at"],
+                }
+                for r in rows
+            ]
+            return {"items": items, "total": total, "limit": limit, "offset": offset}
+
+
     def append_annotation(self, brief_id: str, tenant_id: str, operator_id: str, annotation: str,
-                          *, request_id: str, key_id: str, annotation_id: str | None = None) -> dict | None:
+                          *, request_id: str, key_id: str, annotation_id: str | None = None,
+                          idempotency_key: str | None = None) -> dict | None:
         _safe(annotation)
         with self._connect() as conn:
             conn.execute("BEGIN IMMEDIATE")
@@ -143,7 +187,19 @@ class Database:
                 conn.execute("ROLLBACK")
                 return None
             now = _now()
-            conn.execute("INSERT INTO annotations VALUES (?,?,?,?,?,?)", (annotation_id or uuid.uuid4().hex, brief_id, tenant_id, operator_id, annotation, now))
+            if idempotency_key:
+                row = conn.execute(
+                    "SELECT * FROM annotations WHERE brief_id=? AND tenant_id=? AND idempotency_key=?",
+                    (brief_id, tenant_id, idempotency_key),
+                ).fetchone()
+                if row:
+                    conn.execute("ROLLBACK")
+                    if row["annotation"] != annotation:
+                        raise IdempotencyConflict("idempotency key reused with different request")
+                    return self.get_review(brief_id, tenant_id)
+
+            conn.execute("INSERT INTO annotations VALUES (?,?,?,?,?,?,?)",
+                         (annotation_id or uuid.uuid4().hex, brief_id, tenant_id, operator_id, annotation, idempotency_key, now))
             conn.execute("UPDATE review_queue SET state='annotated', updated_at=? WHERE brief_id=? AND tenant_id=?", (now, brief_id, tenant_id))
             conn.execute("INSERT INTO audit_events VALUES (?,?,?,?,?,?,?,?,?)", (uuid.uuid4().hex, request_id, tenant_id, key_id, "annotation_added", "complete", brief_id, "{}", now))
             conn.execute("COMMIT")
